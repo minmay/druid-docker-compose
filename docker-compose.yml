@@ -1,0 +1,130 @@
+version: "3.7"
+services:
+
+  postgres.druid:
+    container_name: postgres.druid
+    image: postgres:latest
+    volumes:
+      - metadata_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=supersecretpassword
+      - POSTGRES_USER=druid
+      - POSTGRES_DB=druid
+      - PGPORT=25432
+    ports:
+      - "25432:25432"
+
+  # Need 3.5 or later for container nodes
+  zookeeper.druid:
+    container_name: zookeeper.druid
+    image: zookeeper:3.5
+    ports:
+      - "2181:2181"
+    environment:
+      - ZOO_MY_ID=1
+
+  coordinator.druid:
+    build:
+      context: docker
+    container_name: coordinator.druid
+    volumes:
+      - druid_shared:/opt/shared
+      - coordinator_var:/opt/druid/var
+    depends_on:
+      - zookeeper.druid
+      - postgres.druid
+    ports:
+      - "28081:28081"
+    command:
+      - coordinator
+    env_file:
+      - envs/druid.env
+    environment:
+      - DRUID_CONFIG_coordinator=/opt/druid/conf/coordinator/coordinator.properties
+
+  broker.druid:
+    build:
+      context: docker
+    container_name: broker.druid
+    volumes:
+      - broker_var:/opt/druid/var
+    depends_on:
+      - zookeeper.druid
+      - postgres.druid
+      - coordinator.druid
+    ports:
+      - "28082:28082"
+    command:
+      - broker
+    env_file:
+      - envs/druid.env
+    environment:
+      - DRUID_CONFIG_broker=/opt/druid/conf/broker/broker.properties
+
+  historical.druid:
+    build:
+      context: docker
+    container_name: historical.druid
+    volumes:
+      - druid_shared:/opt/shared
+      - historical_var:/opt/druid/var
+    depends_on:
+      - zookeeper.druid
+      - postgres.druid
+      - coordinator.druid
+    ports:
+      - "28083:28083"
+    command:
+      - historical
+    env_file:
+      - envs/druid.env
+    environment:
+      - DRUID_CONFIG_historical=/opt/druid/conf/historical/historical.properties
+
+  middlemanager.druid:
+    build:
+      context: docker
+    container_name: middlemanager.druid
+    volumes:
+      - druid_shared:/opt/shared
+      - middle_var:/opt/druid/var
+    depends_on:
+      - zookeeper.druid
+      - postgres.druid
+      - coordinator.druid
+    ports:
+      - "28091:28091"
+      - "28100-28105:28100-28105"
+    command:
+      - middleManager
+    env_file:
+      - envs/druid.env
+    environment:
+      - DRUID_CONFIG_middleManager=/opt/druid/conf/middlemanager/middle-manager.properties
+
+  router.druid:
+    build:
+      context: docker
+    container_name: router.druid
+    volumes:
+      - router_var:/opt/druid/var
+    depends_on:
+      - zookeeper.druid
+      - postgres.druid
+      - coordinator.druid
+    ports:
+      - "28888:8888"
+    command:
+      - router
+    env_file:
+      - envs/druid.env
+
+volumes:
+  metadata_data: {}
+  middle_var: {}
+  historical_var: {}
+  broker_var: {}
+  coordinator_var: {}
+  router_var: {}
+  druid_shared: {}
+

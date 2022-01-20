@@ -24,8 +24,7 @@ services:
       - ZOO_MY_ID=1
 
   coordinator.druid:
-    build:
-      context: docker
+    image: apache/druid:0.22.1
     container_name: coordinator.druid
     volumes:
       - druid_shared:/opt/shared
@@ -40,11 +39,10 @@ services:
     env_file:
       - envs/druid.env
     environment:
-      - DRUID_CONFIG_coordinator=/opt/druid/conf/coordinator/coordinator.properties
+      - druid_plaintextPort=28081
 
   broker.druid:
-    build:
-      context: docker
+    image: apache/druid:0.22.1
     container_name: broker.druid
     volumes:
       - broker_var:/opt/druid/var
@@ -59,11 +57,10 @@ services:
     env_file:
       - envs/druid.env
     environment:
-      - DRUID_CONFIG_broker=/opt/druid/conf/broker/broker.properties
+      - druid_plaintextPort=28082
 
   historical.druid:
-    build:
-      context: docker
+    image: apache/druid:0.22.1
     container_name: historical.druid
     volumes:
       - druid_shared:/opt/shared
@@ -79,11 +76,10 @@ services:
     env_file:
       - envs/druid.env
     environment:
-      - DRUID_CONFIG_historical=/opt/druid/conf/historical/historical.properties
+      - druid_plaintextPort=28083
 
   middlemanager.druid:
-    build:
-      context: docker
+    image: apache/druid:0.22.1
     container_name: middlemanager.druid
     volumes:
       - druid_shared:/opt/shared
@@ -100,11 +96,12 @@ services:
     env_file:
       - envs/druid.env
     environment:
-      - DRUID_CONFIG_middleManager=/opt/druid/conf/middlemanager/middle-manager.properties
+      - druid_plaintextPort=28091
+      - druid_indexer_runner_startPort=28100
+      - druid_indexer_runner_endPort=28105
 
   router.druid:
-    build:
-      context: docker
+    image: apache/druid:0.22.1
     container_name: router.druid
     volumes:
       - router_var:/opt/druid/var
@@ -113,11 +110,13 @@ services:
       - postgres.druid
       - coordinator.druid
     ports:
-      - "28888:8888"
+      - "28888:28888"
     command:
       - router
     env_file:
       - envs/druid.env
+    environment:
+      - druid_plaintextPort=28888
 
 volumes:
   metadata_data: {}
